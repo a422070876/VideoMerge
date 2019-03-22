@@ -97,9 +97,15 @@ public class VideoEncode {
                 }
                 //cropWidth = Math.min(cropWidth,holder.getCropWidth());
                 //cropHeight = Math.min(cropHeight,holder.getCropHeight());
+                //选最小帧速率，对帧素率大的进行丢帧处理
                 frameRate = Math.min(frameRate, holder.getFrameRate());
-                frameTime = Math.min(frameTime, holder.getFrameTime());
+                //帧时间，帧速率越小，帧时间越大
+                frameTime = Math.max(frameTime, holder.getFrameTime());
             }
+        }
+        //防止MediaFormat取不到帧速率
+        if(frameRate < 1){
+            frameRate = (int) (1000/(frameTime/1000));
         }
         //编码参数
         int BIT_RATE = cropWidth*cropHeight*2*8;
@@ -144,7 +150,7 @@ public class VideoEncode {
             framebuffer.drawFrameBuffer();
             eglUtils.swap();
             //计算时间，这一帧画面必须裁剪时间内的画面
-            if(presentationTimeUs - videoHolder.getStartTime() < startFrameTime){
+            if((presentationTimeUs - videoHolder.getStartTime())/1000 < startFrameTime/1000){
                 return;
             }
             //开始编码
@@ -173,6 +179,8 @@ public class VideoEncode {
                         mediaMuxer.writeSampleData(videoTrackIndex, encodedData, info);
                         Log.d("==============","timeUs = "+timeUs);
                         timeUs = timeUs+frameTime;
+                        //结合presentationTimeUs - videoHolder.getStartTime() < startFrameTime
+                        //对帧速率大的进行丢帧
                         startFrameTime = startFrameTime + frameTime;
                     }
                     videoEncode.releaseOutputBuffer(inputIndex, false);
@@ -214,6 +222,7 @@ public class VideoEncode {
         videoEncode.release();
         mediaMuxer.stop();
         mediaMuxer.release();
+        videoThread.quit();
         Log.d("==============","结束");
     }
 }

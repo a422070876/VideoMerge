@@ -8,14 +8,17 @@ import android.os.Parcelable;
  */
 
 public class VideoHolder implements Parcelable {
-
+    //视频路径
     private String videoFile;
+    //裁剪的坐标长宽
     private int cropLeft;
     private int cropTop;
     private int cropWidth;
     private int cropHeight;
+    //开始结束时间
     private long startTime;
     private long endTime;
+    //帧时间
     private long frameTime;
 
     public VideoHolder(){

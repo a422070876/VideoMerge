@@ -69,6 +69,7 @@ public class VideoDecoder {
             if(run == 1){
                 int outIndex = videoDecoder.dequeueOutputBuffer(info, 50000);
                 if(outIndex >= 0){
+                    //根据时间进行解码
                     if(info.presentationTimeUs >= videoHolder.getStartTime() &&
                             info.presentationTimeUs <= videoHolder.getEndTime()){
                         //解码一帧完成后回调
