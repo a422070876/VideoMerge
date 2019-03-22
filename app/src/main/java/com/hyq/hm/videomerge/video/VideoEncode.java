@@ -80,18 +80,23 @@ public class VideoEncode {
         cropHeight = decoderList.get(0).getCropHeight();
         int frameRate = decoderList.get(0).getFrameRate();
         frameTime = decoderList.get(0).getFrameTime();
-        //宽高选择方案，以最小宽高来显示还是选择分辨率最小的视频的宽高来显示
-        //我这选用分辨率最小的视频的宽高
-        float sh = cropWidth*cropHeight;
+        //宽高选择方案
+        //以最小宽高来显示还是根据宽高比计算最小显示分辨率
+        //我这选用根据宽高比计算最小显示分辨率
+        float sh = cropWidth*1.0f/cropHeight;
         if(decoderList.size() != 1) {
             for (VideoDecoder holder : decoderList) {
-                float vh = holder.getCropWidth() *holder.getCropHeight();
-                if(vh < sh){
-                    cropWidth = holder.getCropWidth();
-                    cropHeight = holder.getCropHeight();
+                float vh = holder.getCropWidth()*1.0f/holder.getCropHeight();
+                if( sh < vh){
+                    cropWidth = Math.min(cropWidth,holder.getCropWidth());
+                    cropHeight = (int) (cropWidth*vh);
+                    //宽高不能是奇数
+                    if(cropHeight%2 != 0){
+                        cropHeight = cropHeight - 1;
+                    }
                 }
-//                cropWidth = Math.min(cropWidth,holder.getCropWidth());
-//                cropHeight = Math.min(cropHeight,holder.getCropHeight());
+                //cropWidth = Math.min(cropWidth,holder.getCropWidth());
+                //cropHeight = Math.min(cropHeight,holder.getCropHeight());
                 frameRate = Math.min(frameRate, holder.getFrameRate());
                 frameTime = Math.min(frameTime, holder.getFrameTime());
             }
