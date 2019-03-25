@@ -1,1 +1,1 @@
-include ':app', ':exoplayer', ':videoedit'
+include ':app', ':exoplayer', ':videoedit', ':lame'
