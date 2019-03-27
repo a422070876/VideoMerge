@@ -5,4 +5,5 @@ package com.hyq.hm.lame;
  */
 
 public interface SimpleLameListener {
+    void setProgress(long size,long total);
 }

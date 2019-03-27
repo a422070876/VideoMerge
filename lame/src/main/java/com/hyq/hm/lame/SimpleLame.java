@@ -12,7 +12,7 @@ public class SimpleLame {
     /**
      * pcm文件转换mp3函数
      */
-    public static native void convert(SimpleLameListener listener, String jwav, String jmp3,
+    public static native void convert(Object listener,int index, String jwav, String jmp3,
                                       int inSampleRate, int outChannel, int outSampleRate, int outBitrate,
                                       int quality);
 }

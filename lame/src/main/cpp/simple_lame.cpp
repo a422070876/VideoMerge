@@ -8,7 +8,7 @@
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_hyq_hm_lame_SimpleLame_convert(JNIEnv *env, jclass type, jobject listener,
+Java_com_hyq_hm_lame_SimpleLame_convert(JNIEnv *env, jclass type, jobject listener,jint index,
                                                    jstring jwav_,jstring jmp3_,
                                                    jint inSampleRate,jint outChannel,
                                                    jint outSampleRate,jint outBitrate,
@@ -22,7 +22,7 @@ Java_com_hyq_hm_lame_SimpleLame_convert(JNIEnv *env, jclass type, jobject listen
     struct stat st;
     stat(jwav, &st );
     jclass cls = env->GetObjectClass(listener);
-    jmethodID mid = env->GetMethodID(cls, "setProgress", "(JJ)V");
+    jmethodID mid = env->GetMethodID(cls, "setProgress", "(JJI)V");
 
     FILE* fwav = fopen(jwav,"rb");
     FILE* fmp3 = fopen(jmp3,"wb");
@@ -42,7 +42,7 @@ Java_com_hyq_hm_lame_SimpleLame_convert(JNIEnv *env, jclass type, jobject listen
     do{
         read = (int) fread(wav_buffer, sizeof(short int) * outChannel, INBUFSIZE, fwav);
         total +=  read* sizeof(short int)*outChannel;
-        env->CallVoidMethod(listener,mid,(long)st.st_size,total);
+        env->CallVoidMethod(listener,mid,(long)st.st_size,total,index);
         if(read!=0){
             if (outChannel == 2){
                 write = lame_encode_buffer_interleaved(lameConvert,wav_buffer,read,mp3_buffer,MP3BUFSIZE);

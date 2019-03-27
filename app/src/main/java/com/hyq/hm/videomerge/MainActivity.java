@@ -5,9 +5,7 @@ import android.content.Intent;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -17,7 +15,6 @@ import android.widget.TextView;
 
 import com.hm.videoedit.holder.VideoHolder;
 import com.hyq.hm.videomerge.activity.ListActivity;
-import com.hyq.hm.videomerge.video.VideoDecoder;
 import com.hyq.hm.videomerge.video.VideoEncode;
 
 import java.io.File;
@@ -30,10 +27,15 @@ public class MainActivity extends AppCompatActivity {
     private List<VideoHolder> list = new ArrayList<>();
 
     private ListAdapter adapter;
+
+    private TextView progressText;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        progressText = findViewById(R.id.progress_text);
 
         ListView listView = findViewById(R.id.list_view);
 
@@ -45,8 +47,6 @@ public class MainActivity extends AppCompatActivity {
                 if(position == list.size()){
                     Intent intent = new Intent(MainActivity.this,ListActivity.class);
                     startActivityForResult(intent,10001);
-                }else{
-
                 }
             }
         });
@@ -149,7 +149,40 @@ public class MainActivity extends AppCompatActivity {
     //开始编辑视频
     //没添加音频所以暂时没写进度条，以后和音频一起补上
     public void onConfirm(View view){
-        VideoEncode encode = new VideoEncode(list);
+        VideoEncode encode = new VideoEncode(list, new VideoEncode.OnVideoEncodeListener() {
+            @Override
+            public void onSynAudio(final int index, final int progress) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if(progressText.getVisibility() == View.INVISIBLE){
+                            progressText.setVisibility(View.VISIBLE);
+                        }
+                        progressText.setText("正在处理第"+(index+1)+"段视频"+progress+"%");
+                    }
+                });
+            }
+
+            @Override
+            public void onDecoder(final int progress) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressText.setText("正在合并视频"+progress+"%");
+                    }
+                });
+            }
+
+            @Override
+            public void onOver() {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        progressText.setVisibility(View.INVISIBLE);
+                    }
+                });
+            }
+        });
         //生成的视频文件
         String path = Environment.getExternalStorageDirectory().getAbsolutePath() +"/HMSDK/video/VideoEdit.mp4";
         File f = new File(path);

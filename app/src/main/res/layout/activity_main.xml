@@ -90,6 +90,14 @@
             </LinearLayout>
 
         </RelativeLayout>
+        <TextView
+            android:id="@+id/progress_text"
+            android:layout_width="300dp"
+            android:layout_height="wrap_content"
+            android:background="#FFF"
+            android:gravity="center"
+            android:visibility="invisible"
+            />
     </RelativeLayout>
 
 </android.support.constraint.ConstraintLayout>
