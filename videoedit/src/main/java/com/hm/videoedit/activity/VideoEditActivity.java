@@ -101,9 +101,9 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
     private CutView cutView;
 
 
-    private ExecutorService fixedThreadPool = Executors.newFixedThreadPool(2);
+    private ExecutorService fixedThreadPool = Executors.newFixedThreadPool(1);
 
-
+    private VideoExtractor videoExtractor;
     private long frameTime = 0;
 
     @Override
@@ -147,112 +147,129 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
 //        });
 //        videoEncode.init(mFilename);
 
-        fixedThreadPool.execute(new Runnable() {
+//        fixedThreadPool.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                final VideoExtractor videoExtractor = new VideoExtractor(VideoEditActivity.this,mFilename);
+//                long d;
+//                if(videoExtractor.getDuration()<= 20000){
+//                    d = videoExtractor.getDuration();
+//                }else{
+//                    d = videoExtractor.getDuration()/4;
+//                }
+//
+//                videoExtractor.encoder(0, d, 1,50,50, new VideoExtractor.OnEncodeListener() {
+//                    @Override
+//                    public void onBitmap(int time, Bitmap bitmap) {
+//                        frameTime = videoExtractor.getFrameTime();
+//                        if(fixedThreadPool.isShutdown()){
+//                            videoExtractor.stop();
+//                        }else{
+//                            SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
+//                            if(bitmaps != null){
+//                                bitmaps.put(time,bitmap);
+//                            }
+//                            mWaveformView.postInvalidate();
+//                        }
+//                    }
+//                });
+//            }
+//        });
+//        fixedThreadPool.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                final VideoExtractor videoExtractor = new VideoExtractor(VideoEditActivity.this,mFilename);
+//                if(videoExtractor.getDuration() <= 20000){
+//                    return;
+//                }
+//                long d = videoExtractor.getDuration()/4;
+//                videoExtractor.encoder(d+1000, d*2 , 1,50,50, new VideoExtractor.OnEncodeListener() {
+//                    @Override
+//                    public void onBitmap(int time, Bitmap bitmap) {
+//                        if(fixedThreadPool.isShutdown()){
+//                            videoExtractor.stop();
+//                        }else{
+//                            SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
+//                            if(bitmaps != null){
+//                                bitmaps.put(time,bitmap);
+//                            }
+//                            mWaveformView.postInvalidate();
+//                        }
+//
+//                    }
+//                });
+//            }
+//        });
+//        fixedThreadPool.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                final VideoExtractor videoExtractor = new VideoExtractor(VideoEditActivity.this,mFilename);
+//                if(videoExtractor.getDuration() <= 20000){
+//                    return;
+//                }
+//                long d = videoExtractor.getDuration()/4;
+//                long start = 2*d;
+//
+//                videoExtractor.encoder(start+1000, start + d , 1,50,50, new VideoExtractor.OnEncodeListener() {
+//                    @Override
+//                    public void onBitmap(int time, Bitmap bitmap) {
+//                        if(fixedThreadPool.isShutdown()){
+//                            videoExtractor.stop();
+//                        }else{
+//                            SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
+//                            if(bitmaps != null){
+//                                bitmaps.put(time,bitmap);
+//                            }
+//                            mWaveformView.postInvalidate();
+//                        }
+//
+//                    }
+//                });
+//            }
+//        });
+//        fixedThreadPool.execute(new Runnable() {
+//            @Override
+//            public void run() {
+//                final VideoExtractor videoExtractor = new VideoExtractor(VideoEditActivity.this,mFilename);
+//                if(videoExtractor.getDuration()<= 20000){
+//                    return;
+//                }
+//                long d = videoExtractor.getDuration()/4;
+//                long start = 3*d;
+//                videoExtractor.encoder(start+1000, videoExtractor.getDuration() , 1,50,50, new VideoExtractor.OnEncodeListener() {
+//                    @Override
+//                    public void onBitmap(int time, Bitmap bitmap) {
+//                        if(fixedThreadPool.isShutdown()){
+//                            videoExtractor.stop();
+//                        }else{
+//                            SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
+//                            if(bitmaps != null){
+//                                bitmaps.put(time,bitmap);
+//                            }
+//                            mWaveformView.postInvalidate();
+//                        }
+//
+//                    }
+//                });
+//            }
+//        });
+        videoExtractor = new VideoExtractor(this,mFilename);
+        videoExtractor.setOnEncodeListener(new VideoExtractor.OnEncodeListener() {
             @Override
-            public void run() {
-                final VideoExtractor videoExtractor = new VideoExtractor(VideoEditActivity.this,mFilename);
-                long d;
-                if(videoExtractor.getDuration()<= 20000){
-                    d = videoExtractor.getDuration();
+            public void onBitmap(int time, Bitmap bitmap) {
+                isImageLoad = false;
+                frameTime = videoExtractor.getFrameTime();
+                if(fixedThreadPool.isShutdown()){
+                    videoExtractor.stop();
                 }else{
-                    d = videoExtractor.getDuration()/4;
-                }
-                videoExtractor.encoder(0, d, 1,50,50, new VideoExtractor.OnEncodeListener() {
-                    @Override
-                    public void onBitmap(int time, Bitmap bitmap) {
-                        frameTime = videoExtractor.getFrameTime();
-                        if(fixedThreadPool.isShutdown()){
-                            videoExtractor.stop();
-                        }else{
-                            SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
-                            if(bitmaps != null){
-                                bitmaps.put(time,bitmap);
-                            }
-                            mWaveformView.postInvalidate();
-                        }
+                    SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
+                    if(bitmaps != null){
+                        bitmaps.put(time,bitmap);
                     }
-                });
+                    mWaveformView.postInvalidate();
+                }
             }
         });
-        fixedThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                final VideoExtractor videoExtractor = new VideoExtractor(VideoEditActivity.this,mFilename);
-                if(videoExtractor.getDuration() <= 20000){
-                    return;
-                }
-                long d = videoExtractor.getDuration()/4;
-                videoExtractor.encoder(d+1000, d*2 , 1,50,50, new VideoExtractor.OnEncodeListener() {
-                    @Override
-                    public void onBitmap(int time, Bitmap bitmap) {
-                        if(fixedThreadPool.isShutdown()){
-                            videoExtractor.stop();
-                        }else{
-                            SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
-                            if(bitmaps != null){
-                                bitmaps.put(time,bitmap);
-                            }
-                            mWaveformView.postInvalidate();
-                        }
-
-                    }
-                });
-            }
-        });
-        fixedThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                final VideoExtractor videoExtractor = new VideoExtractor(VideoEditActivity.this,mFilename);
-                if(videoExtractor.getDuration() <= 20000){
-                    return;
-                }
-                long d = videoExtractor.getDuration()/4;
-                long start = 2*d;
-
-                videoExtractor.encoder(start+1000, start + d , 1,50,50, new VideoExtractor.OnEncodeListener() {
-                    @Override
-                    public void onBitmap(int time, Bitmap bitmap) {
-                        if(fixedThreadPool.isShutdown()){
-                            videoExtractor.stop();
-                        }else{
-                            SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
-                            if(bitmaps != null){
-                                bitmaps.put(time,bitmap);
-                            }
-                            mWaveformView.postInvalidate();
-                        }
-
-                    }
-                });
-            }
-        });
-        fixedThreadPool.execute(new Runnable() {
-            @Override
-            public void run() {
-                final VideoExtractor videoExtractor = new VideoExtractor(VideoEditActivity.this,mFilename);
-                if(videoExtractor.getDuration()<= 20000){
-                    return;
-                }
-                long d = videoExtractor.getDuration()/4;
-                long start = 3*d;
-                videoExtractor.encoder(start+1000, videoExtractor.getDuration() , 1,50,50, new VideoExtractor.OnEncodeListener() {
-                    @Override
-                    public void onBitmap(int time, Bitmap bitmap) {
-                        if(fixedThreadPool.isShutdown()){
-                            videoExtractor.stop();
-                        }else{
-                            SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
-                            if(bitmaps != null){
-                                bitmaps.put(time,bitmap);
-                            }
-                            mWaveformView.postInvalidate();
-                        }
-
-                    }
-                });
-            }
-        });
-
         mHandler.postDelayed(mTimerRunnable, 100);
     }
 
@@ -533,6 +550,21 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
         updateDisplay();
     }
 
+    private boolean isImageLoad = false;
+    @Override
+    public void waveformImage(final int loadSecs) {
+        if(!isImageLoad){
+            isImageLoad = true;
+            fixedThreadPool.execute(new Runnable() {
+                @Override
+                public void run() {
+                    long begin = loadSecs*1000;
+                    videoExtractor.encoder(begin,  50,50);
+                }
+            });
+        }
+
+    }
     //
     // MarkerListener
     //

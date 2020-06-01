@@ -2,11 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/VideoMerge.iml" filepath="$PROJECT_DIR$/VideoMerge.iml" />
-      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/exoplayer/exoplayer.iml" filepath="$PROJECT_DIR$/exoplayer/exoplayer.iml" />
-      <module fileurl="file://$PROJECT_DIR$/lame/lame.iml" filepath="$PROJECT_DIR$/lame/lame.iml" />
-      <module fileurl="file://$PROJECT_DIR$/videoedit/videoedit.iml" filepath="$PROJECT_DIR$/videoedit/videoedit.iml" />
+      <module fileurl="file://$PROJECT_DIR$/VideoMerge.iml" filepath="$PROJECT_DIR$/VideoMerge.iml" group="VideoMerge" />
+      <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" group="VideoMerge/app" />
+      <module fileurl="file://$PROJECT_DIR$/exoplayer/exoplayer.iml" filepath="$PROJECT_DIR$/exoplayer/exoplayer.iml" group="VideoMerge/exoplayer" />
+      <module fileurl="file://$PROJECT_DIR$/lame/lame.iml" filepath="$PROJECT_DIR$/lame/lame.iml" group="VideoMerge/lame" />
+      <module fileurl="file://$PROJECT_DIR$/videoedit/videoedit.iml" filepath="$PROJECT_DIR$/videoedit/videoedit.iml" group="VideoMerge/videoedit" />
     </modules>
   </component>
 </project>
