@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.util.DisplayMetrics;
@@ -20,6 +21,7 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.exoplayer2.ExoPlayerFactory;
 import com.google.android.exoplayer2.SimpleExoPlayer;
@@ -101,16 +103,19 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
     private CutView cutView;
 
 
-    private ExecutorService fixedThreadPool = Executors.newFixedThreadPool(1);
+//    private ExecutorService fixedThreadPool = Executors.newFixedThreadPool(1);
 
     private VideoExtractor videoExtractor;
-    private long frameTime = 0;
+    private Handler videoHandler;
+    private HandlerThread videoThread;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video_edit);
-
+        videoThread = new HandlerThread("VideoExtractor");
+        videoThread.start();
+        videoHandler = new Handler(videoThread.getLooper());
 
         mIsPlaying = false;
 
@@ -253,20 +258,22 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
 //                });
 //            }
 //        });
+
         videoExtractor = new VideoExtractor(this,mFilename);
         videoExtractor.setOnEncodeListener(new VideoExtractor.OnEncodeListener() {
             @Override
             public void onBitmap(int time, Bitmap bitmap) {
                 isImageLoad = false;
-                frameTime = videoExtractor.getFrameTime();
-                if(fixedThreadPool.isShutdown()){
+                if(isPause){
                     videoExtractor.stop();
                 }else{
-                    SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
-                    if(bitmaps != null){
-                        bitmaps.put(time,bitmap);
+                    if(time >= 0){
+                        SparseArray<Bitmap> bitmaps = mWaveformView.getBitmaps();
+                        if(bitmaps != null && bitmaps.get(time) == null){
+                            bitmaps.put(time,bitmap);
+                        }
+                        mWaveformView.postInvalidate();
                     }
-                    mWaveformView.postInvalidate();
                 }
             }
         });
@@ -436,9 +443,11 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
     };
 
 
+    private boolean isPause = false;
     @Override
     protected void onPause() {
         super.onPause();
+        isPause = true;
         if(player == null){
             return;
         }
@@ -448,6 +457,7 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
     @Override
     protected void onResume() {
         super.onResume();
+        isPause = false;
         if(mIsPlaying && player != null){
             player.setPlayWhenReady(true);
         }
@@ -467,8 +477,18 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
         if(mSurface != null){
             mSurface.release();
         }
+        videoHandler.post(new Runnable() {
+            @Override
+            public void run() {
+                if(videoExtractor != null){
+                    videoExtractor.stop();
+                    videoExtractor.release();
+                }
+                videoThread.quit();
+            }
+        });
         mPlayerHandler.removeMessages(100);
-        fixedThreadPool.shutdown();
+//        fixedThreadPool.shutdown();
         mWaveformView.release();
         super.onDestroy();
     }
@@ -549,21 +569,29 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
         mOffsetGoal = mOffset;
         updateDisplay();
     }
-
     private boolean isImageLoad = false;
     @Override
     public void waveformImage(final int loadSecs) {
+        if(isPause){
+            return;
+        }
         if(!isImageLoad){
             isImageLoad = true;
-            fixedThreadPool.execute(new Runnable() {
+            videoHandler.post(new Runnable() {
                 @Override
                 public void run() {
                     long begin = loadSecs*1000;
-                    videoExtractor.encoder(begin,  50,50);
+                    videoExtractor.encoder(begin);
                 }
             });
+//            fixedThreadPool.execute(new Runnable() {
+//                @Override
+//                public void run() {
+//                    long begin = loadSecs*1000;
+//                    videoExtractor.encoder(begin);
+//                }
+//            });
         }
-
     }
     //
     // MarkerListener
@@ -1052,6 +1080,13 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
         finish();
     }
     public void onConfirm(View view){
+        long vst = (long)(Double.parseDouble(formatTime(mStartPos))*1000*1000);
+        long vse = (long)(Double.parseDouble(formatTime(mEndPos))*1000*1000);
+        if(vse - vst < 5 * 1000*1000){
+            Toast.makeText(this,"时长不能小于5秒",Toast.LENGTH_SHORT).show();
+            return;
+        }
+        long frameTime = videoExtractor.getFrameTime();
         if(frameTime == 0){
             return;
         }
@@ -1088,8 +1123,8 @@ public class VideoEditActivity extends AppCompatActivity implements MarkerView.M
         videoHolder.setCropHeight(cropHeight);
         videoHolder.setCropLeft((int) (leftPro*videoWidth));
         videoHolder.setCropTop((int) (topPro*videoHeight));
-        videoHolder.setStartTime((long)(Double.valueOf(formatTime(mStartPos))*1000*1000));
-        videoHolder.setEndTime((long)(Double.valueOf(formatTime(mEndPos))*1000*1000));
+        videoHolder.setStartTime(vst);
+        videoHolder.setEndTime(vse);
         videoHolder.setFrameTime(frameTime);
         Intent intent = new Intent();
         intent.putExtra("videoHolder",videoHolder);

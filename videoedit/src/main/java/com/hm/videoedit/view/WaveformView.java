@@ -24,7 +24,6 @@ import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.media.MediaMetadataRetriever;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.util.SparseArray;
@@ -33,11 +32,7 @@ import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 
-
 import com.hm.videoedit.R;
-
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 
 /**
@@ -92,14 +87,14 @@ public class WaveformView extends View {
     private GestureDetector mGestureDetector;
     private ScaleGestureDetector mScaleGestureDetector;
     private SparseArray<Bitmap> bitmaps;
+    private SparseArray<Bitmap> removeBitmaps;
     private boolean mInitialized;
 
     private long duration = 0;
     private static int mZoomLevels[] = new int[]{1,5,10,30,60};
-    private static float mZooms[] = new float[]{10,2,2.5f,2};
+    private static float mZooms[] = new float[]{4,2,2.5f,2,1};
     public WaveformView(Context context, AttributeSet attrs) {
         super(context, attrs);
-
         // We don't want keys, the markers get these
         setFocusable(false);
 
@@ -123,7 +118,7 @@ public class WaveformView extends View {
         mBorderLinePaint.setColor(res.getColor(R.color.selection_border));
         mPlaybackLinePaint = new Paint();
         mPlaybackLinePaint.setAntiAlias(false);
-        mPlaybackLinePaint.setColor(res.getColor(R.color.playback_indicator));
+        mPlaybackLinePaint.setColor(res.getColor(R.color.colorAccent));
         mTimecodePaint = new Paint();
         mTimecodePaint.setTextSize(12);
         mTimecodePaint.setAntiAlias(true);
@@ -178,6 +173,7 @@ public class WaveformView extends View {
         mInitialized = false;
 
         bitmaps = new SparseArray<>();
+        removeBitmaps = new SparseArray<>();
     }
     @Override
     public boolean onTouchEvent(MotionEvent event) {
@@ -203,17 +199,6 @@ public class WaveformView extends View {
         return duration != 0;
     }
 
-
-    private MediaMetadataRetriever media;
-    private ExecutorService fixedThreadPool = Executors.newFixedThreadPool(3);
-    public void setFileName(String fileName){
-        if(media != null){
-            media.release();
-            media= null;
-        }
-        media = new MediaMetadataRetriever();
-        media.setDataSource(fileName);
-    }
 
     public void setDuration(long duration) {
         this.duration = duration;
@@ -365,7 +350,7 @@ public class WaveformView extends View {
     private Rect src = new Rect(0,0,50,50);
     private RectF dst = new RectF();
     private int imageSecs = -1;
-    private int drawCount = 0;
+    private int imageWidth = -1,imageHeight = -1;
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
@@ -387,57 +372,77 @@ public class WaveformView extends View {
 
         // Draw grid
         double onePixelInSecs = pixelsToSeconds(1);
-        boolean onlyEveryFiveSecs = (onePixelInSecs > 1.0 / 50.0);
+
         double fractionalSecs = mOffset * onePixelInSecs;
         int integerSecs = (int) fractionalSecs;
         int i = 0;
         int s = -1;
         int l = -1;
-        int imageWidth = 0;
-        int imageHeight = 0;
         int c = -1;
         imageSecs = -1;
+        removeBitmaps.clear();
+        int drawWidth = 0;
+        Rect rect = null;
         while (i < width) {
             i++;
             fractionalSecs += onePixelInSecs;
             int integerSecsNew = (int) fractionalSecs;
             if (integerSecsNew != integerSecs) {
                 integerSecs = integerSecsNew;
-                if (!onlyEveryFiveSecs || 0 == (integerSecs % 5)) {
-
-                    if(integerSecs%mZoomLevels[mZoomLevel] == 0){
-                        if(c == -1){
-                            c = integerSecs;
-                            l = i;
+                if(integerSecs%mZoomLevels[mZoomLevel] == 0){
+                    if(c == -1){
+                        c = integerSecs;
+                        l = i;
+                    }
+                    if(c != integerSecs){
+                        if(drawWidth == 0){
+                            drawWidth = i - l;
                         }
-                        if(c != integerSecs){
-                            if(imageWidth == 0){
-                                imageWidth = i - l;
-                            }
-                            if(imageHeight == 0){
-                                imageHeight = getMeasuredHeight() - 10 - (int) (12 * mDensity+5);
-                            }
-                        }
-                        if(imageWidth != 0){
-                            int top = (int) (12 * mDensity+5);
-                            if(s == -1){
-                                int oneSecs = integerSecs - mZoomLevels[mZoomLevel] - mZoomLevels[mZoomLevel];
-                                Bitmap b = bitmaps.get(oneSecs);
-                                if(b != null){
+                    }
+                    if(imageHeight <= 0){
+                        imageHeight = getMeasuredHeight();
+                    }
+                    if(drawWidth != 0 && drawWidth != imageWidth){
+                        imageWidth = drawWidth;
+                    }
+                    if(imageWidth != 0){
+                        if(s == -1){
+                            int oneSecs = integerSecs - mZoomLevels[mZoomLevel] - mZoomLevels[mZoomLevel];
+                            if(oneSecs >= 0){
+                                Bitmap bitmap = bitmaps.get(oneSecs);
+                                if(bitmap != null){
+                                    int bw = bitmap.getWidth();
+                                    int bh = bitmap.getHeight();
+                                    if(rect == null){
+                                        rect = imageRect(bw,bh,imageWidth,imageHeight);
+                                    }
+                                    removeBitmaps.put(oneSecs,bitmap);
+                                    src.right = bw;
+                                    src.bottom = bh;
                                     int left = l - imageWidth;
-                                    dst.set(left,top,left+imageWidth + 1,top + imageHeight);
-                                    canvas.drawBitmap(b,src,dst,mSelectedLinePaint);
+                                    dst.set(left + rect.left,rect.top,left+rect.width() + 1,rect.top+rect.height());
+                                    canvas.drawBitmap(bitmap,src,dst,mSelectedLinePaint);
                                 }else{
                                     if(imageSecs == -1){
                                         imageSecs = oneSecs;
                                     }
                                 }
-                                int twoSecs = integerSecs - mZoomLevels[mZoomLevel];
-                                b = bitmaps.get(twoSecs);
-                                if(b != null){
+                            }
+                            int twoSecs = integerSecs - mZoomLevels[mZoomLevel];
+                            if(twoSecs >= 0){
+                                Bitmap bitmap = bitmaps.get(twoSecs);
+                                if(bitmap != null){
+                                    int bw = bitmap.getWidth();
+                                    int bh = bitmap.getHeight();
+                                    if(rect == null){
+                                        rect = imageRect(bw,bh,imageWidth,imageHeight);
+                                    }
+                                    removeBitmaps.put(twoSecs,bitmap);
+                                    src.right = bitmap.getWidth();
+                                    src.bottom = bitmap.getHeight();
                                     int left = i - imageWidth;
-                                    dst.set(left,top,left+imageWidth + 1,top + imageHeight);
-                                    canvas.drawBitmap(b,src,dst,mSelectedLinePaint);
+                                    dst.set(left + rect.left,rect.top,left+rect.width() + 1,rect.top+rect.height());
+                                    canvas.drawBitmap(bitmap,src,dst,mSelectedLinePaint);
                                     s = 1;
                                 }else{
                                     if(imageSecs == -1){
@@ -445,35 +450,49 @@ public class WaveformView extends View {
                                     }
                                 }
                             }
+                        }
+                        if(integerSecs >= 0){
                             Bitmap bitmap = bitmaps.get(integerSecs);
                             if(bitmap != null){
+                                int bw = bitmap.getWidth();
+                                int bh = bitmap.getHeight();
+                                if(rect == null){
+                                    rect = imageRect(bw,bh,imageWidth,imageHeight);
+                                }
+                                removeBitmaps.put(integerSecs,bitmap);
+                                src.right = bitmap.getWidth();
+                                src.bottom = bitmap.getHeight();
                                 int left = i;
-                                dst.set(left,top,left+imageWidth  + 1,top + imageHeight);
+                                dst.set(left + rect.left,rect.top,left+rect.width() + 1,rect.top+rect.height());
                                 canvas.drawBitmap(bitmap,src,dst,mSelectedLinePaint);
                             }else{
                                 if(imageSecs == -1){
                                     imageSecs = integerSecs;
                                 }
                             }
-                            canvas.drawLine(i, 0, i, measuredHeight, mGridPaint);
                         }
+                        canvas.drawLine(i, 0, i, measuredHeight, mGridPaint);
                     }
-
                 }
             }
         }
-        drawCount++;
+        bitmaps.clear();
+        for (int k = 0; k < removeBitmaps.size(); k++){
+            int key = removeBitmaps.keyAt(k);
+            bitmaps.put(key,removeBitmaps.get(key));
+        }
+        removeBitmaps.clear();
         postDelayed(new Runnable() {
             @Override
             public void run() {
-                drawCount--;
-                if(drawCount == 0 && imageSecs != -1){
+                if(imageSecs !=  -1){
                     if (mListener != null) {
                         mListener.waveformImage(imageSecs);
                     }
                 }
             }
         },100);
+
 //        if(bitmaps != null){
 //            int m = i+mOffset;
 //            while (i < m && s < bitmaps.size()){
@@ -603,25 +622,23 @@ public class WaveformView extends View {
         mLenByZoomLevel = new int[5];
         mZoomFactorByZoomLevel = new double[5];
         mValuesByZoomLevel = new double[5][];
-
         // Level 0 is doubled, with interpolated values
-        mLenByZoomLevel[0] = numFrames * 2;
+        mLenByZoomLevel[0] = numFrames*2;
         mZoomFactorByZoomLevel[0] = 2.0;
 
         // Level 1 is normal
-        mLenByZoomLevel[1] = numFrames/5;
-        mZoomFactorByZoomLevel[1] = 0.2;
+        mLenByZoomLevel[1] = numFrames/2;
+        mZoomFactorByZoomLevel[1] = 0.5;
 
-        mLenByZoomLevel[2] = numFrames/10;
-        mZoomFactorByZoomLevel[2] = 0.1;
+        mLenByZoomLevel[2] = numFrames/4;
+        mZoomFactorByZoomLevel[2] = 0.25;
 
 
-        mLenByZoomLevel[3] = numFrames/25;
-        mZoomFactorByZoomLevel[3] = 0.04;
+        mLenByZoomLevel[3] = numFrames/10;
+        mZoomFactorByZoomLevel[3] = 0.1;
 
-        mLenByZoomLevel[4] = numFrames/50;
-        mZoomFactorByZoomLevel[4] = 0.02;
-
+        mLenByZoomLevel[4] = numFrames/20;
+        mZoomFactorByZoomLevel[4] = 0.05;
 
         for (int i = 0; i < 5;i++){
             mValuesByZoomLevel[i] = new double[mLenByZoomLevel[i]];
@@ -671,5 +688,26 @@ public class WaveformView extends View {
             mHeightsAtThisZoomLevel[i] =
                 (int)(mValuesByZoomLevel[mZoomLevel][i] * halfHeight);
         }
+    }
+
+    private Rect imageRect(int imageWidth , int imageHeight, int viewWidth, int viewHeight){
+        Rect rect = new Rect();
+        float vh = viewWidth*1.0f/viewHeight;
+        float ih = imageWidth *1.0f/ imageHeight;
+        int width,height;
+        if(vh < ih){
+            rect.left = 0;
+            width = viewWidth;
+            height = (int)(imageHeight *1.0f/ imageWidth *width);
+            rect.top = (viewHeight - height)/2;
+        }else{
+            rect.top = 0;
+            height = viewHeight;
+            width = (int)(imageWidth *1.0f/ imageHeight *height);
+            rect.left = (viewWidth - width)/2;
+        }
+        rect.right = rect.left + width;
+        rect.bottom = rect.top + height;
+        return rect;
     }
 }
