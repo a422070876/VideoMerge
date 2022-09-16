@@ -584,7 +584,7 @@ public class WaveformView extends View {
                 if(startX == -1)startX = i;
                 else if(drawWidth == -1) drawWidth = i -startX;
                 integerTimecode = integerTimecodeNew;
-                if(startNumber == -1) startNumber = integerSecs - 1;
+                if(startNumber == -1) startNumber = integerSecs - mZoomLevels[mZoomLevel];
                 numberList.add(integerSecs);
                 xList.add(i);
 //                if(startNumber != integerTimecode){
@@ -690,7 +690,7 @@ public class WaveformView extends View {
                     }
                 }
             }
-        },10);
+        },200);
         if (mListener != null) {
             mListener.waveformDraw();
         }

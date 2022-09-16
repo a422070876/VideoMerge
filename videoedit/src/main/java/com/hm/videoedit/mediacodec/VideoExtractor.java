@@ -122,9 +122,9 @@ public class VideoExtractor {
                         count++;
                     }
                 }else if(count == 1){
-                    videoExtractor.seekTo(40,trackIndex);
+                    videoExtractor.seekTo(0,trackIndex);
                     count++;
-                };
+                }
 //                if(!isOver && roundTime != -1 && time <= roundTime + 5){
 //                    if(listener != null){
 //                        listener.onBitmap(-1,null);
@@ -134,9 +134,6 @@ public class VideoExtractor {
                 videoDecoder.releaseOutputBuffer(outIndex, true /* Surface init */);
                 if(time < 200){
                     if(isOver){
-                        break;
-                    }
-                    if(time >= endTime){
                         break;
                     }
                 }
