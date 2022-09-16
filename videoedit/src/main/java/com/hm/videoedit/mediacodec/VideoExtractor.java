@@ -88,15 +88,15 @@ public class VideoExtractor {
         }
         MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
         long roundTime = -1;
-
         long ft = 0;
+        int count = 0;
+        boolean isOver = false;
         while (stop){
             boolean isR = extractorVideoInputBuffer();
 //            if(isR && frameTime != 0){
 //                roundTime = frameTime*2;
 //            }
             int outIndex = videoDecoder.dequeueOutputBuffer(info, 500000);
-            boolean isOver = false;
             if(outIndex >= 0){
                 long time = info.presentationTimeUs/1000;
                 if(frameTime == 0 ){
@@ -106,19 +106,25 @@ public class VideoExtractor {
                         frameTime = info.presentationTimeUs - ft;
                     }
                 }
-                if(time >= begin || isR){
-                    Image image = videoDecoder.getOutputImage(outIndex);
-                    Bitmap bitmap = fastYUVtoRGB.convertYUVtoRGB(getDataFromImage(image),width,height);
-                    if(gifWidth != -1 && gifHeight != -1){
-                        bitmap = Bitmap.createScaledBitmap(bitmap,gifWidth,gifHeight,true);
-                    }else{
-                        bitmap = Bitmap.createScaledBitmap(bitmap,w,h,true);
+                if(count == 0){
+                    if(time >= begin || isR){
+                        Image image = videoDecoder.getOutputImage(outIndex);
+                        Bitmap bitmap = fastYUVtoRGB.convertYUVtoRGB(getDataFromImage(image),width,height);
+                        if(gifWidth != -1 && gifHeight != -1){
+                            bitmap = Bitmap.createScaledBitmap(bitmap,gifWidth,gifHeight,true);
+                        }else{
+                            bitmap = Bitmap.createScaledBitmap(bitmap,w,h,true);
+                        }
+                        if(listener != null){
+                            listener.onBitmap(key,bitmap);
+                        }
+                        isOver = true;
+                        count++;
                     }
-                    if(listener != null){
-                        listener.onBitmap(key,bitmap);
-                    }
-                    isOver = true;
-                }
+                }else if(count == 1){
+                    videoExtractor.seekTo(40,trackIndex);
+                    count++;
+                };
 //                if(!isOver && roundTime != -1 && time <= roundTime + 5){
 //                    if(listener != null){
 //                        listener.onBitmap(-1,null);
@@ -126,11 +132,13 @@ public class VideoExtractor {
 //                    isOver = true;
 //                }
                 videoDecoder.releaseOutputBuffer(outIndex, true /* Surface init */);
-                if(isOver){
-                    break;
-                }
-                if(time >= endTime){
-                    break;
+                if(time < 200){
+                    if(isOver){
+                        break;
+                    }
+                    if(time >= endTime){
+                        break;
+                    }
                 }
             }
         }

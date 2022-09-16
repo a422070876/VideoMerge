@@ -15,6 +15,8 @@ public class VideoHolder implements Parcelable {
     private int cropTop;
     private int cropWidth;
     private int cropHeight;
+    private int videoWidth;
+    private int videoHeight;
     //开始结束时间
     private long startTime;
     private long endTime;
@@ -30,6 +32,8 @@ public class VideoHolder implements Parcelable {
         cropTop = in.readInt();
         cropWidth = in.readInt();
         cropHeight = in.readInt();
+        videoWidth = in.readInt();
+        videoHeight = in.readInt();
         startTime = in.readLong();
         endTime = in.readLong();
         frameTime = in.readLong();
@@ -47,6 +51,8 @@ public class VideoHolder implements Parcelable {
         dest.writeInt(cropTop);
         dest.writeInt(cropWidth);
         dest.writeInt(cropHeight);
+        dest.writeInt(videoWidth);
+        dest.writeInt(videoHeight);
         dest.writeLong(startTime);
         dest.writeLong(endTime);
         dest.writeLong(frameTime);
@@ -101,6 +107,22 @@ public class VideoHolder implements Parcelable {
 
     public void setCropHeight(int cropHeight) {
         this.cropHeight = cropHeight;
+    }
+
+    public int getVideoWidth() {
+        return videoWidth;
+    }
+
+    public void setVideoWidth(int videoWidth) {
+        this.videoWidth = videoWidth;
+    }
+
+    public int getVideoHeight() {
+        return videoHeight;
+    }
+
+    public void setVideoHeight(int videoHeight) {
+        this.videoHeight = videoHeight;
     }
 
     public long getStartTime() {

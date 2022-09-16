@@ -62,10 +62,10 @@ public class VideoExtractor {
     }
 
     public int getVideoWidth(){
-        return format.getInteger(MediaFormat.KEY_WIDTH);
+        return videoHolder.getVideoWidth();
     }
     public int getVideoHeight(){
-        return format.getInteger(MediaFormat.KEY_HEIGHT);
+        return videoHolder.getVideoHeight();
     }
     public String getMime(){
         return format.getString(MediaFormat.KEY_MIME);
